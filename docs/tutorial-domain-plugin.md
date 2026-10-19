@@ -3,7 +3,7 @@
 The [first tutorial](tutorial-custom-node.md) registered a node and emitted
 a custom event. This one closes the loop that makes the node *provable*: a
 contract over your own event vocabulary, a proof bundle, and an offline
-verification — still without modifying a line of Evarness. Every output
+verification — still without modifying a line of Evarness Verify. Every output
 shown was captured from the tutorial package.
 
 ## Declare a contract over your own event
@@ -36,7 +36,7 @@ to add; determinism, tracing, proof, and verification come with them.**
 ## Prove it, verify it
 
 ```bash
-evarness prove graph.json --fixture fixture.yaml -o proof.json
+evarness-verify prove graph.json --fixture fixture.yaml -o proof.json
 ```
 
 ```text
@@ -49,7 +49,7 @@ wrote proof.json
 custom node just inherited the reproducibility demonstration. Then:
 
 ```bash
-evarness verify proof.json
+evarness-verify verify proof.json
 ```
 
 ```text
@@ -66,7 +66,7 @@ has never seen your code run.
 ## The full seam surface
 
 A node plus a contract is the small end of a domain. The registries in
-`evarness.core.registry` are the whole list of what a domain can
+`evarness_verify.core.registry` are the whole list of what a domain can
 contribute — each one is how the packaged agents domain wires itself in,
 so `evarness/domains/agents/` is a complete worked example:
 

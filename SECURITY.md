@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Evarness is pre-1.0. Only the latest release (and `main`) receive security fixes.
+Evarness Verify is pre-1.0. Only the latest release (and `main`) receive security fixes.
 
 | Version | Supported |
 | ------- | --------- |
@@ -14,7 +14,7 @@ Evarness is pre-1.0. Only the latest release (and `main`) receive security fixes
 Please **do not** open a public issue for security problems.
 
 Report vulnerabilities privately via
-[GitHub Security Advisories](https://github.com/evarness-ai/evarness/security/advisories/new)
+[GitHub Security Advisories](https://github.com/evarness-ai/evarness-verify/security/advisories/new)
 ("Report a vulnerability" on the repository's Security tab).
 
 Include what you can of: affected component, a reproduction (graph + fixture + seed
@@ -23,7 +23,7 @@ fixes are coordinated before public disclosure.
 
 ## Scope
 
-Evarness currently executes harness graphs **in simulation only**: every model and
+Evarness Verify currently executes harness graphs **in simulation only**: every model and
 tool response comes from a scripted fixture, and nothing in this package makes
 network calls or touches files outside its own data directory (`~/.evarness/`).
 That keeps the attack surface deliberately small, and it means:

@@ -6,7 +6,7 @@ slug: the-trace-is-the-ui
 # The trace is the UI
 
 _An assurance tool's most valuable interface is portable evidence, not an
-app. Evarness renders a graph, a run, and its verdicts into one
+app. Evarness Verify renders a graph, a run, and its verdicts into one
 self-contained HTML file — the event-sourced trace is the animation feed,
 the digest in the header is recomputable from the file alone, and the file
 itself obeys the product's own honesty rules. This post is the design
@@ -19,7 +19,7 @@ generated and checked._
 
 ## The constraint as identity
 
-Evarness ships with two runtime dependencies. That is not a footnote — it is
+Evarness Verify ships with two runtime dependencies. That is not a footnote — it is
 part of the public claim: a proof you can verify offline, on an air-gapped
 machine, from a wheel you built yourself. A `package.json` in this repo
 would contradict that story before anyone finished the README.
@@ -27,7 +27,7 @@ would contradict that story before anyone finished the README.
 So there is no app. When you run
 
 ```bash
-evarness run graph.json --fixture happy.yaml --html replay.html
+evarness-verify run graph.json --fixture happy.yaml --html replay.html
 ```
 
 the "UI" you get is a generated artifact: one HTML file, inline SVG, vanilla
@@ -115,7 +115,7 @@ pin travels by rule, not by habit.
 
 Phase two of the same thesis: if the artifact is the UI, then the proof
 bundle — the product's central object — deserves the same treatment.
-`evarness render proof.json` produces one page: the tri-state verdict badge
+`evarness-verify render proof.json` produces one page: the tri-state verdict badge
 (HOLDS / PENDING / FAILED), one viewer per scenario with its own playhead
 and reproduction status, and the bundle's `not_proven` section rendered
 verbatim as the footer. Three rules govern the page:
@@ -128,7 +128,7 @@ verbatim as the footer. Three rules govern the page:
    "signature NOT checked by this page". Vouching is `verify`'s job; a
    page asserting its own integrity is worth exactly nothing.
 3. **The island IS the bundle.** The page embeds the entire proof bundle in
-   its data island. Extract the `bundle` key and run `evarness verify` —
+   its data island. Extract the `bundle` key and run `evarness-verify verify` —
    the proof re-checks offline, signature included, from the HTML file
    alone.
 
@@ -141,7 +141,7 @@ build fails if the proof inside it stops verifying.
 
 What this does not claim:
 
-- **Rendering is not verification.** The page shows; `evarness verify`
+- **Rendering is not verification.** The page shows; `evarness-verify verify`
   checks. Opening a pretty artifact proves nothing until you run the
   verifier against what it carries.
 - **The artifact is a view over evidence, not a generator of it.** If the
@@ -154,11 +154,11 @@ What this does not claim:
 
 The generated-artifact rule has a corollary the decision log states
 plainly: anything interactive enough to need a build toolchain lives in a
-separate repo, never here. That repo now exists — **Evarness Studio**, the
+separate repo, never here. That repo now exists — **Evarness Verify Studio**, the
 product's visual surface: a pattern library, a drag-and-drop graph builder
 with type-checked connections, and proof-bundle import that draws a canvas
 only when the bundle's pinned graph hash matches. It grows as the product
-grows. On the library side, `evarness export` unpacks a *verified* bundle
+grows. On the library side, `evarness-verify export` unpacks a *verified* bundle
 into standard interchange formats — and refuses to unpack one that fails
 verification, because an exporter that launders tampered bundles would
 undo everything above.

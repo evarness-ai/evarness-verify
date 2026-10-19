@@ -41,7 +41,7 @@ def _island(path: Path) -> dict:
 
 
 def on_pre_build(config) -> None:
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     demos = DOCS / "demos"
     demos.mkdir(exist_ok=True)
@@ -80,7 +80,7 @@ def on_pre_build(config) -> None:
                 raise SystemExit(f"docs demos: `evarness {argv[0]}` exited {code}")
         code = main(["render", proof, "-o", str(demos / "proof-browser.html")])
         if code != 0:
-            raise SystemExit(f"docs demos: `evarness render` exited {code}")
+            raise SystemExit(f"docs demos: `evarness-verify render` exited {code}")
         # the proof browser embeds the whole bundle; also publish the raw
         # bundle next to it so "extract and verify" has a download too
         shutil.copy(proof, demos / "proof.json")
@@ -113,10 +113,10 @@ _LINK_MAP = {
     "docs/ONBOARDING.md": "ONBOARDING.md",
     "docs/PROVE-VERIFY.md": "PROVE-VERIFY.md",
     "ARCHITECTURE.md": "architecture.md",
-    "DECISIONS.md": "https://github.com/evarness-ai/evarness/blob/main/DECISIONS.md",
+    "DECISIONS.md": "https://github.com/evarness-ai/evarness-verify/blob/main/DECISIONS.md",
     "SECURITY.md": "security.md",
     "CONTRIBUTING.md": "contributing.md",
-    "LICENSE": "https://github.com/evarness-ai/evarness/blob/main/LICENSE",
+    "LICENSE": "https://github.com/evarness-ai/evarness-verify/blob/main/LICENSE",
 }
 
 

@@ -5,12 +5,16 @@ import json
 
 import pytest
 
-from evarness.core import store
-from evarness.domains.agents import patterns
-from evarness.core.executor import execute
-from evarness.core.invariants import check_invariants, load_invariant_defs, register_invariant_check
-from evarness.core.graph import GraphModel
-from evarness.domains.agents.sim import load_fixture
+from evarness_verify.core import store
+from evarness_verify.core.executor import execute
+from evarness_verify.core.graph import GraphModel
+from evarness_verify.core.invariants import (
+    check_invariants,
+    load_invariant_defs,
+    register_invariant_check,
+)
+from evarness_verify.domains.agents import patterns
+from evarness_verify.domains.agents.sim import load_fixture
 
 FLAGSHIP = "governed_email_assistant"
 GATED = "approval_gated_send"
@@ -277,7 +281,7 @@ def test_publish_validates_and_bundles_carry_contracts(tmp_path, monkeypatch):
 
 
 def test_cli_exit_gates_on_invariant_failure(tmp_path, capsys):
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     graph_doc = patterns.load_pattern(FLAGSHIP)
     graph_doc["params"]["invariants"] = ["no-model-calls"]

@@ -1,4 +1,4 @@
-# Evarness guide
+# Evarness Verify guide
 
 *Audience: new users · about fifteen minutes · basic CLI familiarity.*
 
@@ -8,8 +8,8 @@ in simulation — no API keys, no network, no side effects.
 ## 1. Install and orient
 
 ```bash
-pip install git+https://github.com/evarness-ai/evarness
-evarness patterns
+pip install git+https://github.com/evarness-ai/evarness-verify
+evarness-verify patterns
 ```
 
 A **pattern** is a packaged harness: `graph.json` (the topology), `fixtures/`
@@ -26,7 +26,7 @@ User patterns live in `~/.evarness/patterns/`.
 ## 2. Run a graph and read the trace
 
 ```bash
-evarness run path/to/graph.json --fixture path/to/fixture.yaml --json
+evarness-verify run path/to/graph.json --fixture path/to/fixture.yaml --json
 ```
 
 A run is an **event stream**: `run_started`, `intent_routed`, `llm_request`,
@@ -47,8 +47,8 @@ OpenTelemetry/GenAI-semconv document).
 ### See the run: the render artifact
 
 ```bash
-evarness run path/to/graph.json --fixture path/to/fixture.yaml --html run.html
-evarness render path/to/graph.json          # static canvas, no execution
+evarness-verify run path/to/graph.json --fixture path/to/fixture.yaml --html run.html
+evarness-verify render path/to/graph.json          # static canvas, no execution
 ```
 
 `--html` writes the run as one **self-contained HTML file**: the graph as a
@@ -102,8 +102,8 @@ skipped.
 ## 4. Prove, then verify anywhere
 
 ```bash
-evarness prove approval_gated_send --approve n3=approve -o proof.json --html report.html
-evarness verify proof.json
+evarness-verify prove approval_gated_send --approve n3=approve -o proof.json --html report.html
+evarness-verify verify proof.json
 ```
 
 `prove` runs every scenario **twice** (digest reproduction demonstrated, not
@@ -131,7 +131,7 @@ For CI: `prove --junit verdicts.xml` (test report) or `--sarif findings.sarif`
 ### Browse a bundle
 
 ```bash
-evarness render proof.json -o proof.html
+evarness-verify render proof.json -o proof.html
 ```
 
 The **proof browser** is the render artifact applied to a whole bundle: the
@@ -147,15 +147,15 @@ its own:
   a mismatch is a loud error; no matching graph means the canvas is honestly
   omitted, never substituted.
 - **The page never vouches for itself.** A signed bundle is labeled
-  "signature NOT checked by this page" — checking is `evarness verify`'s job.
+  "signature NOT checked by this page" — checking is `evarness-verify verify`'s job.
 - **The island IS the bundle.** The full bundle rides in the data island:
-  extract its `bundle` key to a file and `evarness verify` re-checks it
+  extract its `bundle` key to a file and `evarness-verify verify` re-checks it
   offline, signature included. The HTML file alone carries a verifiable proof.
 
 ### Export a bundle
 
 ```bash
-evarness export proof.json            # -> proof-export/
+evarness-verify export proof.json            # -> proof-export/
 ```
 
 Unpacks a bundle into the standard interchange set for other frameworks and
@@ -182,7 +182,7 @@ Worth knowing because they shape every command's behavior:
 
 ## Data locations
 
-`~/.evarness/` holds the activity log (`evarness.db`, override with
+`~/.evarness/` holds the activity log (`evarness_verify.db`, override with
 `$EVARNESS_DB`), user patterns, user overlays (`invariants.yaml`,
 `prompts.yaml`, `tools.yaml`, …), and signing keys. The overlays merge over the
 packaged defaults; every one has an `$EVARNESS_*` env override.

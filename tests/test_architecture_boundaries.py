@@ -13,9 +13,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-CORE = Path(__file__).resolve().parent.parent / "evarness" / "core"
+CORE = Path(__file__).resolve().parent.parent / "evarness_verify" / "core"
 
-FORBIDDEN_PREFIXES = ("evarness.domains", "evarness.io", "evarness.cli")
+FORBIDDEN_PREFIXES = ("evarness_verify.domains", "evarness_verify.io", "evarness_verify.cli")
 
 
 def _imports(path: Path) -> list[str]:
@@ -74,7 +74,7 @@ def test_core_graph_surface_works_without_any_domain():
     code = """
 import sys
 from pydantic import BaseModel
-from evarness.core.graph import GraphModel, lint, topological_order
+from evarness_verify.core.graph import GraphModel, lint, topological_order
 
 class _Cfg(BaseModel):
     pass
@@ -95,7 +95,7 @@ graph = GraphModel.model_validate({
 issues = lint(graph, {"thing": _Spec})
 assert not [i for i in issues if i["level"] == "error"], issues
 assert topological_order(graph) == ["a", "b"]
-loaded = [m for m in sys.modules if m.startswith("evarness.domains")]
+loaded = [m for m in sys.modules if m.startswith("evarness_verify.domains")]
 assert not loaded, f"core pulled in domain modules: {loaded}"
 print("ok")
 """
@@ -107,18 +107,18 @@ print("ok")
 
 
 def test_top_level_surface_is_lazy_but_batteries_included():
-    """`import evarness` loads no domain; first attribute access loads it all.
+    """`import evarness_verify` loads no domain; first attribute access loads it all.
 
     The package docstring promises both halves; this holds them.
     """
     code = """
 import sys
-import evarness
-assert not [m for m in sys.modules if m.startswith("evarness.domains")], "import alone loaded a domain"
-execute = evarness.execute
+import evarness_verify
+assert not [m for m in sys.modules if m.startswith("evarness_verify.domains")], "import alone loaded a domain"
+execute = evarness_verify.execute
 assert callable(execute)
-assert "evarness.domains.agents" in sys.modules, "attribute access must load the batteries"
-assert len(evarness.NODE_TYPES) > 0, "agents node types must be registered"
+assert "evarness_verify.domains.agents" in sys.modules, "attribute access must load the batteries"
+assert len(evarness_verify.NODE_TYPES) > 0, "agents node types must be registered"
 print("ok")
 """
     result = subprocess.run(
@@ -136,10 +136,10 @@ def test_execute_runs_a_from_scratch_domain_without_agents():
     code = """
 import sys
 from pydantic import BaseModel
-from evarness.core.executor import execute
-from evarness.core.graph import GraphModel
-from evarness.core.registry import NODE_TYPES, set_provider_factory
-from evarness.core.trace import canonical_trace, trace_digest
+from evarness_verify.core.executor import execute
+from evarness_verify.core.graph import GraphModel
+from evarness_verify.core.registry import NODE_TYPES, set_provider_factory
+from evarness_verify.core.trace import canonical_trace, trace_digest
 
 
 class _Provider:
@@ -209,7 +209,7 @@ d2 = trace_digest(canonical_trace(second.events))
 assert d1 == d2, f"digest not stable: {d1} != {d2}"
 names = [e["type"] for e in first.events]
 assert "toy_sourced" in names, names
-loaded = [m for m in sys.modules if m.startswith("evarness.domains")]
+loaded = [m for m in sys.modules if m.startswith("evarness_verify.domains")]
 assert not loaded, f"execute pulled in domain modules: {loaded}"
 print("ok")
 """
@@ -225,7 +225,7 @@ def test_cli_loads_entry_point_plugins(monkeypatch):
     registered before any command parses a graph. The lazy top-level import
     no longer does this as a side effect, so `main()` must do it itself —
     this pins that."""
-    import evarness.cli as cli
+    from evarness_verify import cli
 
     calls = []
     monkeypatch.setattr(cli, "load_entry_point_plugins", lambda: calls.append(True))
@@ -235,8 +235,8 @@ def test_cli_loads_entry_point_plugins(monkeypatch):
 
 def test_unguarded_llm_rule_is_domain_registered():
     """The policy lint arrives with the agents domain, not the kernel."""
-    import evarness.domains.agents  # noqa: F401  (registers the rule)
-    from evarness.core.registry import GRAPH_LINT_RULES
+    import evarness_verify.domains.agents  # noqa: F401  (registers the rule)
+    from evarness_verify.core.registry import GRAPH_LINT_RULES
 
     names = [fn.__name__ for fn in GRAPH_LINT_RULES]
     assert "unguarded_llm" in names

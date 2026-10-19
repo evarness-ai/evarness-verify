@@ -1,12 +1,12 @@
-# Evarness architecture
+# Evarness Verify architecture
 
-Evarness is layered so that the thing it proves is bigger than the thing it
+Evarness Verify is layered so that the thing it proves is bigger than the thing it
 ships first. The kernel doesn't know what a "tool" or an "LLM" is — it knows
 graphs, events, digests, contracts, and proofs. Agents are the first *domain*
 built on that kernel; they are not the kernel.
 
 ```
-evarness/
+evarness_verify/
 ├── core/                 # the kernel — domain-agnostic, minimal deps
 │   ├── graph.py          #   graph IR (nodes/edges/params), lint, migrate
 │   ├── executor.py       #   event-sourced execution, RunContext, RunResult
@@ -62,7 +62,7 @@ Four ways in, all typed, all discoverable:
   name → object table with a loud unknown-name error. Misregistration is traced,
   never silently ignored.
 - **Entry points** — a pip-installed package can register into any registry via
-  the `evarness.plugins` entry-point group; `~/.evarness/plugins/` remains for
+  the `evarness_verify.plugins` entry-point group; `~/.evarness/plugins/` remains for
   local, uninstalled extensions. This is how a third-party domain ships.
 - **Config overlays** — every tunable lives in packaged YAML, overridable per
   user at `~/.evarness/<name>.yaml` and per process via `$EVARNESS_<NAME>`.

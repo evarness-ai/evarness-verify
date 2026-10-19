@@ -1,4 +1,4 @@
-# Evarness developer onboarding
+# Evarness Verify developer onboarding
 
 *Audience: repository contributors · a code-level walkthrough of the whole system.*
 
@@ -10,16 +10,16 @@ against the tree it documents; the full test suite must pass at all times.
 
 ## 0. Naming (this trips everyone up)
 
-- **Evarness** is the open-source project, the Python package, and the CLI —
+- **Evarness Verify** is the open-source project, the Python package, and the CLI —
   one name for all three.
-- **`evarness.core`** is the domain-neutral assurance kernel;
-  **`evarness.domains.agents`** is the first supported domain;
-  **Evarness Studio** (a separate repository) is the optional visual client.
+- **`evarness_verify.core`** is the domain-neutral assurance kernel;
+  **`evarness_verify.domains.agents`** is the first supported domain;
+  **Evarness Verify Studio** (a separate repository) is the optional visual client.
 - It is the public face of a longer private effort: features are proven in a
   private workbench first, then arrive here through the core/domain seams —
   only finished, verified work lands in this repo.
 - It is deliberately **separate** from DLIF. A decision record in the DLIF
-  project (ADR-025) fixes the boundary: Evarness governs and evaluates AI
+  project (ADR-025) fixes the boundary: Evarness Verify governs and evaluates AI
   execution; DLIF supplies private distributed inference. They will share an
   adapter contract, never a codebase.
 
@@ -27,7 +27,7 @@ against the tree it documents; the full test suite must pass at all times.
 
 **Prove an AI agent harness before it touches real data.** An agent = model +
 harness (the deterministic scaffolding that routes, gates, grounds, and audits
-every turn). Evarness makes the harness's safety claims *checkable* rather than
+every turn). Evarness Verify makes the harness's safety claims *checkable* rather than
 prose. Four pillars — the "first feature," which the README calls the
 **assurance spine**:
 
@@ -35,10 +35,10 @@ prose. Four pillars — the "first feature," which the README calls the
    seed ⇒ same digest (`c1:sha256:…`) on any machine, OS, or Python version.
 2. **Invariant contracts** — claims like "approval precedes send" are YAML
    assertions evaluated against the event stream on every run.
-3. **Proof bundles** — `evarness prove` runs each scenario twice, demonstrates
+3. **Proof bundles** — `evarness-verify prove` runs each scenario twice, demonstrates
    digest reproduction, evaluates contracts, and emits a portable JSON bundle
    with a mandatory `not_proven` section.
-4. **Offline verification** — `evarness verify` re-checks a bundle anywhere,
+4. **Offline verification** — `evarness-verify verify` re-checks a bundle anywhere,
    no network, optionally pinned to an Ed25519 signature
    (`--sign` / `verify --require-signature`).
 
@@ -67,7 +67,7 @@ kernel needs domain judgment ("is this graph deterministic?") it exposes a hook
 registry (`DETERMINISM_INSPECTORS`) and the domain registers an inspector at
 import time. Extension enters through four typed seams: registries
 (`register_node`, `register_exporter`, …), pip entry points
-(`evarness.plugins`), config overlays (packaged YAML ← `~/.evarness/*.yaml` ←
+(`evarness_verify.plugins`), config overlays (packaged YAML ← `~/.evarness/*.yaml` ←
 `$EVARNESS_*`), and `Protocol` interfaces (`py.typed` ships).
 
 ## 3. Code-by-code: how one run flows
@@ -165,7 +165,7 @@ Verified results (2026-07-18):
 
 ## 5. The pending verdict (tri-state `ok`, E8)
 
-`evarness prove approval_gated_send` with no `--approve` **pauses** at the
+`evarness-verify prove approval_gated_send` with no `--approve` **pauses** at the
 gate, so invariants are *not evaluated* and reproduction is *not attempted*.
 The verdict is honest about that in three states:
 
@@ -181,7 +181,7 @@ Pausing is still *designed behavior* — PENDING is not a failure, it is an
 instruction. To actually demonstrate the three invariants:
 
 ```bash
-evarness prove approval_gated_send --approve n3=approve -o proof.json
+evarness-verify prove approval_gated_send --approve n3=approve -o proof.json
 # → invariants 3✓/0✗, reproduced, PROOF: HOLDS
 ```
 
@@ -192,12 +192,12 @@ cd evarness
 source .venv/bin/activate
 P=evarness/domains/agents/patterns/approval_gated_send
 
-evarness patterns                                                  # what's runnable
-evarness run $P/graph.json --fixture $P/fixtures/send.yaml         # → paused
-evarness run $P/graph.json --fixture $P/fixtures/send.yaml --approve n3=approve
-evarness run $P/graph.json --fixture $P/fixtures/send.yaml --approve n3=reject
-evarness prove approval_gated_send --approve n3=approve -o proof.json
-evarness verify proof.json
+evarness-verify patterns                                                  # what's runnable
+evarness-verify run $P/graph.json --fixture $P/fixtures/send.yaml         # → paused
+evarness-verify run $P/graph.json --fixture $P/fixtures/send.yaml --approve n3=approve
+evarness-verify run $P/graph.json --fixture $P/fixtures/send.yaml --approve n3=reject
+evarness-verify prove approval_gated_send --approve n3=approve -o proof.json
+evarness-verify verify proof.json
 pytest -q                                                          # the whole suite must pass
 ```
 

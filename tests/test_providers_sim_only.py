@@ -3,8 +3,8 @@ loudly (never a silent fallback that would make the trace lie about what ran).""
 
 import pytest
 
-from evarness.domains.agents.providers import ProviderError, list_providers, make_provider
-from evarness.domains.agents.sim import SimLLMProvider
+from evarness_verify.domains.agents.providers import ProviderError, list_providers, make_provider
+from evarness_verify.domains.agents.sim import SimLLMProvider
 
 
 def test_sim_provider_resolves():
@@ -39,9 +39,9 @@ def test_list_providers_is_sim_only_and_says_so():
 
 
 def test_graph_naming_real_provider_fails_loudly_at_execution():
-    from evarness.core.executor import execute
-    from evarness.core.graph import GraphModel
-    from evarness.domains.agents.sim import load_fixture
+    from evarness_verify.core.executor import execute
+    from evarness_verify.core.graph import GraphModel
+    from evarness_verify.domains.agents.sim import load_fixture
 
     graph = GraphModel.model_validate(
         {
@@ -62,9 +62,9 @@ def test_graph_naming_real_provider_fails_loudly_at_execution():
 def test_tool_mode_real_refuses_as_governance_block():
     """Real tool execution hasn't graduated: mode:real must be a traced
     governance block with remediation — never an ImportError."""
-    from evarness.core.executor import execute
-    from evarness.core.graph import GraphModel
-    from evarness.domains.agents.sim import load_fixture
+    from evarness_verify.core.executor import execute
+    from evarness_verify.core.graph import GraphModel
+    from evarness_verify.domains.agents.sim import load_fixture
 
     graph = GraphModel.model_validate(
         {

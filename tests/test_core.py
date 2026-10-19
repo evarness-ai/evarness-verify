@@ -5,11 +5,11 @@ import json
 import pytest
 import yaml
 
-from evarness.domains.agents import patterns
-from evarness.core.executor import execute
-from evarness.domains.agents.nodes import REGISTRY
-from evarness.core.graph import GraphModel, lint
-from evarness.domains.agents.sim import load_fixture
+from evarness_verify.core.executor import execute
+from evarness_verify.core.graph import GraphModel, lint
+from evarness_verify.domains.agents import patterns
+from evarness_verify.domains.agents.nodes import REGISTRY
+from evarness_verify.domains.agents.sim import load_fixture
 
 FLAGSHIP = "governed_email_assistant"
 
@@ -105,7 +105,7 @@ def test_flagship_failure_lab_blocks_before_llm():
 def test_determinism_same_seed_same_events():
     # the contract holds over the CANONICAL trace (D51): full payloads
     # included, only the wall-clock envelope excluded
-    from evarness.core.trace import canonical_trace, trace_digest
+    from evarness_verify.core.trace import canonical_trace, trace_digest
 
     graph, fx = load(FLAGSHIP)
     a = execute(graph, fx)
@@ -126,11 +126,11 @@ ASSEMBLED = {
 
 def test_prompt_vocabulary_is_yaml_derived():
     # C11: prompt structure/content lives in prompts.yaml, not Python source
-    from evarness.domains.agents.nodes import (
+    from evarness_verify.domains.agents.nodes import (
         DEFAULT_AGENT_SYSTEM,
         DEFAULT_LLM_SYSTEM,
-        LoopControllerNode,
         PROMPT_TEMPLATES,
+        LoopControllerNode,
     )
 
     assert PROMPT_TEMPLATES["answer_with_context"] == (
@@ -141,7 +141,7 @@ def test_prompt_vocabulary_is_yaml_derived():
     assert DEFAULT_AGENT_SYSTEM.startswith("You are a careful, tool-using assistant.")
     # protocol byte-compat: blank line before the transcript, trailing newline kept
     assert LoopControllerNode.REACT_PROTOCOL.endswith("\n\n{transcript}\n")
-    from evarness.domains.agents.prompts import GENERATOR
+    from evarness_verify.domains.agents.prompts import GENERATOR
 
     assert "{registry}" in GENERATOR["design"] and "{prompt}" in GENERATOR["design"]
     assert '"config": {}' in GENERATOR["design"]  # JSON braces survive (literal subst)
@@ -149,7 +149,7 @@ def test_prompt_vocabulary_is_yaml_derived():
 
 
 def test_prompts_user_file_merges_over_packaged(tmp_path, monkeypatch):
-    from evarness.domains.agents import prompts
+    from evarness_verify.domains.agents import prompts
 
     user = tmp_path / "prompts.yaml"
     user.write_text(
@@ -199,7 +199,7 @@ class _EmitCtx:
 
 def test_output_parser_json_format_is_real():
     # C13: format=json extracts + canonicalizes; invalid JSON passes through flagged
-    from evarness.domains.agents.nodes import OutputParserNode
+    from evarness_verify.domains.agents.nodes import OutputParserNode
 
     cfg = OutputParserNode.Config(format="json")
     ctx = _EmitCtx()
@@ -222,8 +222,8 @@ def test_output_parser_json_format_is_real():
 
 def test_semantic_memory_conflict_policy_is_real():
     # C13: entries sharing a key conflict; the policy decides which fact wins
-    from evarness.domains.agents.nodes import SemanticMemoryNode
-    from evarness.domains.agents.sim import Fixture
+    from evarness_verify.domains.agents.nodes import SemanticMemoryNode
+    from evarness_verify.domains.agents.sim import Fixture
 
     fx = Fixture(
         {
@@ -250,7 +250,7 @@ def test_dead_knobs_removed():
 
 
 def test_prompt_template_default_preset_layout():
-    from evarness.domains.agents.nodes import PROMPT_TEMPLATES, PromptTemplateNode
+    from evarness_verify.domains.agents.nodes import PROMPT_TEMPLATES, PromptTemplateNode
 
     prompt = PromptTemplateNode.render(PROMPT_TEMPLATES["answer_with_context"], ASSEMBLED)
     assert prompt == (
@@ -262,7 +262,7 @@ def test_prompt_template_default_preset_layout():
 
 
 def test_prompt_template_empty_sections_are_dropped():
-    from evarness.domains.agents.nodes import PROMPT_TEMPLATES, PromptTemplateNode
+    from evarness_verify.domains.agents.nodes import PROMPT_TEMPLATES, PromptTemplateNode
 
     bare = {"system": "You are helpful.", "question": "Hi?"}
     prompt = PromptTemplateNode.render(PROMPT_TEMPLATES["answer_with_context"], bare)
@@ -271,7 +271,7 @@ def test_prompt_template_empty_sections_are_dropped():
 
 def test_prompt_template_preset_controls_layout():
     # plain_qa really omits documents/memory — the template is a knob, not a label
-    from evarness.domains.agents.nodes import PROMPT_TEMPLATES, PromptTemplateNode
+    from evarness_verify.domains.agents.nodes import PROMPT_TEMPLATES, PromptTemplateNode
 
     prompt = PromptTemplateNode.render(PROMPT_TEMPLATES["plain_qa"], ASSEMBLED)
     assert prompt == "You are helpful.\nQuestion: How many days?"
@@ -279,7 +279,7 @@ def test_prompt_template_preset_controls_layout():
 
 
 def test_prompt_template_custom_layout_end_to_end():
-    from evarness.domains.agents.nodes import PromptTemplateNode
+    from evarness_verify.domains.agents.nodes import PromptTemplateNode
 
     class Ctx:
         def __init__(self):
@@ -337,7 +337,7 @@ def _egress_graph(provider: str, egress: str = "enforce") -> GraphModel:
 
 
 def test_keyword_classifier_classes_and_privacy():
-    from evarness.domains.agents.classification import classify
+    from evarness_verify.domains.agents.classification import classify
 
     c, sig, unk = classify("here is api_key=sk-live-4242 for the deploy")
     assert c == "secret" and "api_key" in sig and unk is None
@@ -351,7 +351,7 @@ def test_keyword_classifier_classes_and_privacy():
 
 
 def test_unknown_classifier_traced_never_silent():
-    from evarness.domains.agents.classification import classify
+    from evarness_verify.domains.agents.classification import classify
 
     c, _, unknown = classify("hello there", "not_registered")
     assert unknown == "not_registered" and c == "public"  # keyword fallback, traced
@@ -374,7 +374,10 @@ def test_egress_warn_traces_without_blocking():
 
 
 def test_egress_overlay_loosens_one_row(tmp_path, monkeypatch):
-    from evarness.domains.agents.classification import egress_allowed, reload_classification_config
+    from evarness_verify.domains.agents.classification import (
+        egress_allowed,
+        reload_classification_config,
+    )
 
     overlay = tmp_path / "classification.yaml"
     overlay.write_text("egress:\n  personal: [sim, local, cloud]\n")
@@ -463,7 +466,7 @@ def test_judge_chain_timeout_fails_open():
 
 
 def test_judge_chain_overlay_flips_on_fail(tmp_path, monkeypatch):
-    from evarness.domains.agents.judges import reload_judges_config
+    from evarness_verify.domains.agents.judges import reload_judges_config
 
     overlay = tmp_path / "judges.yaml"
     overlay.write_text("judges:\n  faithfulness: {on_fail: warn}\n")
@@ -961,7 +964,8 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("EVARNESS_PATTERNS", str(tmp_path / "patterns"))
     monkeypatch.setenv("EVARNESS_CATALOG", str(tmp_path / "catalog"))
     import importlib
-    from evarness import store as store_mod
+
+    from evarness_verify import store as store_mod
 
     importlib.reload(store_mod)
     import app.main as main_mod

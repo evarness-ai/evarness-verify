@@ -9,11 +9,11 @@ import json
 
 import pytest
 
-from evarness.cli import main
-from evarness.core.errors import EvarnessError
-from evarness.domains.agents import patterns
-from evarness.domains.agents.providers import ProviderError
-from evarness.io.exporters import ExportFormatError, export_trace
+from evarness_verify.cli import main
+from evarness_verify.core.errors import EvarnessError
+from evarness_verify.domains.agents import patterns
+from evarness_verify.domains.agents.providers import ProviderError
+from evarness_verify.io.exporters import ExportFormatError, export_trace
 
 FLAGSHIP = "governed_email_assistant"
 

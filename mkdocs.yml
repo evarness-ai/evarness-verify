@@ -5,11 +5,11 @@
 # the CLI at build time and FAILS THE BUILD if the reference digests don't
 # reproduce — the docs cannot claim what the build didn't demonstrate.
 
-site_name: Evarness
+site_name: Evarness Verify
 site_description: Harness assurance for AI agents — prove a harness in simulation with canonical traces, invariant contracts, and offline-verifiable proof bundles.
-site_url: https://evarness-ai.github.io/evarness/
-repo_url: https://github.com/evarness-ai/evarness
-repo_name: evarness-ai/evarness
+site_url: https://evarness-ai.github.io/evarness-verify/
+repo_url: https://github.com/evarness-ai/evarness-verify
+repo_name: evarness-ai/evarness-verify
 edit_uri: blob/main/docs/
 
 docs_dir: docs

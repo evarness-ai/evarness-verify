@@ -22,11 +22,11 @@ jobs:
         # a repo about reproducibility should not have a drifting lint gate
         run: python -m pip install -e ".[dev,sign]" ruff==0.15.22 black==26.5.1 mypy==2.3.0 types-PyYAML
       - name: Lint
-        run: ruff check evarness/ tests/
+        run: ruff check evarness_verify/ tests/
       - name: Format
-        run: black --check evarness/ tests/
+        run: black --check evarness_verify/ tests/
       - name: Types
-        run: mypy evarness/
+        run: mypy evarness_verify/
       - name: Tests
         run: python -m pytest tests/ -q
 
@@ -62,5 +62,5 @@ jobs:
           # --approve so the gate resumes and the invariants are actually
           # evaluated: without it the scenario pauses and prove exits 1
           # with PROOF: PENDING (E8 — a pending proof gates CI on purpose)
-          /tmp/clean/bin/evarness prove approval_gated_send --approve n3=approve -o /tmp/proof.json
-          /tmp/clean/bin/evarness verify /tmp/proof.json
+          /tmp/clean/bin/evarness-verify prove approval_gated_send --approve n3=approve -o /tmp/proof.json
+          /tmp/clean/bin/evarness-verify verify /tmp/proof.json

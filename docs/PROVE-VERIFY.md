@@ -3,7 +3,7 @@
 *Audience: technical users · about twenty minutes · best read after the guide.*
 
 Companion to [ONBOARDING.md](ONBOARDING.md). Part 1 is the vocabulary — what
-each concept *is*, why it exists, and how Evarness resolves it in code. Part 2
+each concept *is*, why it exists, and how Evarness Verify resolves it in code. Part 2
 walks the implementation (`core/prove.py`, `core/attest.py`) and the live
 demos (verified 2026-07-18 against the first-capability-release tree).
 
@@ -11,7 +11,7 @@ demos (verified 2026-07-18 against the first-capability-release tree).
 
 ## Part 1 · What is what, and why
 
-Each entry: **What it is → Why it exists → How Evarness resolves it.**
+Each entry: **What it is → Why it exists → How Evarness Verify resolves it.**
 
 ### Hash (SHA-256)
 - **What:** a one-way function that turns any bytes into a fixed 64-hex-char
@@ -233,8 +233,8 @@ Renderers project **verdicts** (never raw traces — those are
 Commands:
 
 ```bash
-evarness prove approval_gated_send --approve n3=approve --sign -o proof.json
-evarness verify proof.json --pubkey "$(cat ~/.evarness/keys/proof_ed25519.pub)" --require-signature
+evarness-verify prove approval_gated_send --approve n3=approve --sign -o proof.json
+evarness-verify verify proof.json --pubkey "$(cat ~/.evarness/keys/proof_ed25519.pub)" --require-signature
 ```
 
 CI consuming third-party bundles should **always** pass

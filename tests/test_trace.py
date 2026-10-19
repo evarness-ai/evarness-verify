@@ -2,18 +2,18 @@
 
 import json
 
-from evarness.core import store
-from evarness.domains.agents import patterns
-from evarness.core.executor import execute
-from evarness.core.graph import GraphModel
-from evarness.domains.agents.sim import load_fixture
-from evarness.core.trace import (
+from evarness_verify.core import store
+from evarness_verify.core.executor import execute
+from evarness_verify.core.graph import GraphModel
+from evarness_verify.core.trace import (
     CANONICAL_ENVELOPE_FIELDS,
     CANONICALIZATION_VERSION,
     canonical_event,
     canonical_json,
     trace_digest,
 )
+from evarness_verify.domains.agents import patterns
+from evarness_verify.domains.agents.sim import load_fixture
 
 FLAGSHIP = "governed_email_assistant"
 

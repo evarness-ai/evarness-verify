@@ -1,0 +1,470 @@
+"""Trace exporters — canonical event streams in formats the rest of the world reads.
+
+Evarness's native trace is the canonical event stream (trace.py). This
+module projects it into standard interchange formats so a run recorded here can
+land in existing pipelines instead of an observability island:
+
+  * ``jsonl`` — the native form: one canonical event per line, byte-stable
+    (sorted keys, compact, ascii). The digest input, line by line.
+  * ``otlp``  — an OpenTelemetry OTLP/JSON document (``resourceSpans``): the run
+    is the root span, each node execution is a child span, every other engine
+    event rides as a span event on its node's span. GenAI semantic-convention
+    attribute names (``gen_ai.provider.name``, ``gen_ai.request.model``,
+    ``gen_ai.usage.total_tokens``) are used where the mapping is exact;
+    everything Evarness-specific is namespaced ``evarness.*`` — no
+    pretending our vocabulary is theirs.
+
+Exports are DERIVED evidence, not the contract: they include wall-clock
+timestamps and are not expected to be byte-identical across runs. The canonical
+digest travels inside every export (``evarness_verify.trace_digest``) so a consumer
+can always name the underlying trace. Trace/span ids are content-derived
+(sha256 of digest + seq) — stable for a deterministic run, and honest about
+being identifiers, not randomness.
+
+Extension point: register your own format by name —
+
+    from evarness_verify.io.exporters import register_exporter
+
+    @register_exporter("csv", media_type="text/csv", extension=".csv")
+    def export_csv(events, meta, cfg):
+        ...return the serialized document as a str...
+
+Python-plugin exporters arrive with the Tools SDK in a later release. Knobs
+live in packaged ``exporters.yaml`` with a
+per-format user overlay at ``~/.evarness/exporters.yaml``
+(``$EVARNESS_EXPORTERS``). An unknown format is a loud ``ValueError`` naming
+the formats that do exist — never a silent fallback.
+
+JUnit and SARIF are deliberately NOT here: they report *verdicts*, not traces,
+so they render proof bundles (prove.py).
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+from collections.abc import Callable
+from dataclasses import dataclass
+from importlib import metadata
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from evarness_verify.core.errors import EvarnessError
+from evarness_verify.core.trace import canonical_event, trace_digest
+
+_PACKAGED = Path(__file__).parent / "exporters.yaml"
+
+
+class ExportFormatError(EvarnessError, ValueError):
+    """An unknown trace format was requested. Still a ValueError for existing
+    callers; also part of the EvarnessError family so the CLI renders it as a
+    message, not a traceback (E9)."""
+
+
+def _overlay_path() -> Path:
+    return Path(
+        os.environ.get("EVARNESS_EXPORTERS", str(Path.home() / ".evarness" / "exporters.yaml"))
+    )
+
+
+_cfg_cache: dict | None = None
+
+
+def exporter_config(force_reload: bool = False) -> dict:
+    """Packaged exporters.yaml with the user overlay merged per format."""
+    global _cfg_cache
+    if _cfg_cache is None or force_reload:
+        cfg = yaml.safe_load(_PACKAGED.read_text()) or {}
+        overlay = _overlay_path()
+        if overlay.is_file():
+            user = yaml.safe_load(overlay.read_text()) or {}
+            for fmt, knobs in user.items():
+                merged = dict(cfg.get(fmt) or {})
+                merged.update(knobs or {})
+                cfg[fmt] = merged
+        _cfg_cache = cfg
+    return _cfg_cache
+
+
+def _engine_version() -> str:
+    try:
+        return metadata.version("evarness-verify")
+    except metadata.PackageNotFoundError:  # bare checkout
+        return "unknown"
+
+
+# ------------------------------------------------------------------- registry
+
+
+@dataclass(frozen=True)
+class Exporter:
+    name: str
+    fn: Callable[[list[dict], dict, dict], str]
+    media_type: str
+    extension: str
+
+
+EXPORTERS: dict[str, Exporter] = {}
+
+
+def register_exporter(name: str, media_type: str = "application/json", extension: str = ".json"):
+    """Register a trace exporter by name. ``fn(events, meta, cfg) -> str`` where
+    ``events`` is the raw engine stream, ``meta`` is run context (run_id, name,
+    status, seed, provider, deterministic — whatever the caller knows), and
+    ``cfg`` is this format's section from exporters.yaml (+ overlay)."""
+
+    def deco(fn):
+        EXPORTERS[name] = Exporter(name=name, fn=fn, media_type=media_type, extension=extension)
+        return fn
+
+    return deco
+
+
+def export_formats() -> list[str]:
+    _load_plugin_exporters()
+    return sorted(EXPORTERS)
+
+
+def export_formats_meta() -> list[dict]:
+    """The registered formats with their presentation facts — what a UI needs to
+    offer a download control without hardcoding the format list."""
+    _load_plugin_exporters()
+    return [
+        {"id": e.name, "media_type": e.media_type, "extension": e.extension}
+        for _, e in sorted(EXPORTERS.items())
+    ]
+
+
+def export_trace(fmt: str, events: list[dict], meta: dict | None = None) -> tuple[str, str]:
+    """Serialize ``events`` in ``fmt``. Returns ``(document, media_type)``.
+    Unknown formats raise — misconfiguration is loud, never a silent fallback."""
+    _load_plugin_exporters()
+    exp = EXPORTERS.get(fmt)
+    if exp is None:
+        raise ExportFormatError(
+            f"unknown trace format '{fmt}' — available: " f"{', '.join(sorted(EXPORTERS))}"
+        )
+    cfg = exporter_config().get(fmt) or {}
+    return exp.fn(events, dict(meta or {}), cfg), exp.media_type
+
+
+def _load_plugin_exporters() -> None:
+    """Python-plugin exporters arrive with the Tools SDK in a later release;
+    until then only the built-ins and the YAML overlay are available. This
+    hook stays so the registry shape doesn't change when plugins land."""
+    return
+
+
+# -------------------------------------------------------------------- builtins
+
+
+@register_exporter("jsonl", media_type="application/x-ndjson", extension=".jsonl")
+def export_jsonl(events: list[dict], meta: dict, cfg: dict) -> str:
+    """Native canonical trace, one event per line — exactly the bytes the
+    digest is computed over, split at event boundaries."""
+    return (
+        "\n".join(
+            json.dumps(canonical_event(e), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+            for e in events
+        )
+        + "\n"
+    )
+
+
+def _hex_id(seedtext: str, nbytes: int) -> str:
+    return hashlib.sha256(seedtext.encode("utf-8")).hexdigest()[: nbytes * 2]
+
+
+def _nanos(ts: float | None) -> str:
+    # OTLP/JSON encodes uint64 as a decimal string
+    return str(int(round((ts or 0.0) * 1e9)))
+
+
+def _attr(key: str, value: Any) -> dict:
+    if isinstance(value, bool):
+        v: dict = {"boolValue": value}
+    elif isinstance(value, int):
+        v = {"intValue": str(value)}  # int64 is a string in OTLP/JSON
+    elif isinstance(value, float):
+        v = {"doubleValue": value}
+    else:
+        v = {"stringValue": str(value)}
+    return {"key": key, "value": v}
+
+
+def _provider_attrs(provider: str | None) -> list[dict]:
+    """'ollama:qwen2.5:7b' -> gen_ai.provider.name=ollama, request.model=rest;
+    'sim:helpful-v1'/'sim' stays a provider named sim — honestly simulated."""
+    if not provider:
+        return []
+    system, _, model = str(provider).partition(":")
+    out = [_attr("gen_ai.provider.name", system)]
+    if model:
+        out.append(_attr("gen_ai.request.model", model))
+    return out
+
+
+@register_exporter("otlp", media_type="application/json", extension=".otlp.json")
+def export_otlp(events: list[dict], meta: dict, cfg: dict) -> str:
+    """One OTLP/JSON document: root span = the run, child span = each node
+    execution (node_started..node_finished), span events = everything else,
+    attached to the node span they belong to (falling back to the root)."""
+    digest = meta.get("trace_digest") or trace_digest(events)
+    trace_id = _hex_id(f"{digest}", 16)
+    root_id = _hex_id(f"{digest}:root", 8)
+
+    started = next((e for e in events if e["type"] == "run_started"), None)
+    finished = next(
+        (e for e in events if e["type"] in ("run_finished", "run_failed", "run_paused")), None
+    )
+    # canonical event streams (bundle export) carry no wall clock — by design.
+    # OTLP still needs timestamps, so those streams get ordinal time (seq as
+    # seconds from epoch 0), declared honestly in evarness_verify.time_basis rather
+    # than fabricated as wall clock.
+    wall_clock = all("ts" in e for e in events)
+    ts_of = (lambda e: e["ts"]) if wall_clock else (lambda e: float(e["seq"]))
+    t0 = ts_of(events[0]) if events else 0.0
+    t1 = ts_of(events[-1]) if events else t0
+
+    status = meta.get("status")
+    root_status: dict = {}
+    if status == "completed":
+        root_status = {"code": "STATUS_CODE_OK"}
+    elif status in ("blocked", "failed"):
+        root_status = {"code": "STATUS_CODE_ERROR", "message": str(meta.get("reason") or status)}
+
+    root_attrs = [
+        _attr("evarness_verify.trace_digest", digest),
+        _attr("evarness_verify.time_basis", "wall-clock" if wall_clock else "canonical-ordinal"),
+    ]
+    for key in ("run_id", "status", "seed", "fixture", "pattern"):
+        if meta.get(key) is not None:
+            root_attrs.append(_attr(f"evarness.{key}", meta[key]))
+    if started:
+        root_attrs.append(
+            _attr("evarness_verify.deterministic", bool(started["payload"].get("deterministic")))
+        )
+        root_attrs.extend(
+            _provider_attrs(started["payload"].get("provider") or meta.get("provider"))
+        )
+    if finished and finished["type"] == "run_finished":
+        root_attrs.append(
+            _attr("gen_ai.usage.total_tokens", int(finished["payload"].get("total_tokens") or 0))
+        )
+
+    def span_event(e: dict) -> dict:
+        attrs = [
+            _attr("evarness_verify.seq", e["seq"]),
+            _attr(
+                "evarness_verify.payload",
+                json.dumps(e["payload"], sort_keys=True, separators=(",", ":"), ensure_ascii=True),
+            ),
+        ]
+        return {"timeUnixNano": _nanos(ts_of(e)), "name": e["type"], "attributes": attrs}
+
+    spans = []
+    open_span: dict | None = None  # engine executes nodes sequentially
+    root_events: list[dict] = []
+    for e in events:
+        if e["type"] == "node_started":
+            open_span = {
+                "traceId": trace_id,
+                "spanId": _hex_id(f"{digest}:{e['seq']}", 8),
+                "parentSpanId": root_id,
+                "name": f"{e['payload'].get('type', 'node')}:{e['node_id']}",
+                "kind": "SPAN_KIND_INTERNAL",
+                "startTimeUnixNano": _nanos(ts_of(e)),
+                "endTimeUnixNano": _nanos(ts_of(e)),  # patched on node_finished
+                "attributes": [
+                    _attr("evarness_verify.node_id", e["node_id"] or ""),
+                    _attr("evarness_verify.node_type", e["payload"].get("type", "")),
+                ],
+                "events": [],
+                "status": {},
+            }
+            spans.append(open_span)
+        elif e["type"] == "node_finished" and open_span is not None:
+            open_span["endTimeUnixNano"] = _nanos(ts_of(e))
+            open_span = None
+        elif open_span is not None:
+            # a block/pause aborts the node mid-flight — the event still lands
+            # on the span that was executing, and the span stays honest about
+            # never finishing (end = last event seen inside it)
+            open_span["events"].append(span_event(e))
+            open_span["endTimeUnixNano"] = _nanos(ts_of(e))
+            if e["type"] == "policy_violation":
+                open_span["status"] = {
+                    "code": "STATUS_CODE_ERROR",
+                    "message": str(e["payload"].get("reason") or ""),
+                }
+        else:
+            root_events.append(span_event(e))
+
+    root_span = {
+        "traceId": trace_id,
+        "spanId": root_id,
+        "name": f"evarness_verify.run:{meta.get('name') or meta.get('graph_id') or 'graph'}",
+        "kind": "SPAN_KIND_INTERNAL",
+        "startTimeUnixNano": _nanos(t0),
+        "endTimeUnixNano": _nanos(t1),
+        "attributes": root_attrs,
+        "events": root_events,
+        "status": root_status,
+    }
+
+    resource_attrs = [_attr("service.name", cfg.get("service_name", "evarness-verify"))]
+    for k, v in (cfg.get("resource_attributes") or {}).items():
+        resource_attrs.append(_attr(str(k), v))
+
+    doc = {
+        "resourceSpans": [
+            {
+                "resource": {"attributes": resource_attrs},
+                "scopeSpans": [
+                    {
+                        "scope": {"name": "evarness-verify", "version": _engine_version()},
+                        "spans": [root_span] + spans,
+                    }
+                ],
+            }
+        ]
+    }
+    return json.dumps(doc, indent=2)
+
+
+# ------------------------------------------------------------- bundle export
+
+EXPORT_VERSION = "x1"  # manifest layout version; bump on any layout change
+
+
+class ExportRefusedError(EvarnessError):
+    """The bundle failed verification — export refused. Interchange files
+    derived from a tampered or inconsistent bundle would launder it into
+    artifacts that look clean; nothing is written."""
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _safe_name(name: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", name) or "scenario"
+
+
+def export_bundle(
+    bundle: dict,
+    out_dir: str | Path,
+    trace_formats: tuple[str, ...] = ("jsonl", "otlp"),
+) -> dict:
+    """Unpack a proof bundle into the standard interchange set and return the
+    manifest (also written as ``manifest.json``):
+
+    * per scenario, the canonical trace in each requested registry format —
+      ``jsonl`` is the digest input line by line; ``otlp`` is OpenTelemetry
+      for framework/observability tooling; plugin formats work unchanged
+    * the verdicts as JUnit XML and SARIF (CI and code-scanning surfaces)
+    * ``manifest.json``: subject, verdict, ``not_proven`` verbatim, and a
+      sha256 receipt for every file written
+
+    The bundle is verified first (digests, chains, verdict consistency) and
+    a failing bundle is REFUSED with nothing written — export must never
+    launder a tampered bundle into clean-looking interchange files. A
+    ``--no-events`` bundle exports verdicts and manifest only; its scenarios
+    are listed as named-by-digest-but-not-exported, never silently skipped.
+    """
+    from evarness_verify.core.prove import render_junit, render_sarif, verify_proof
+
+    check = verify_proof(bundle)
+    if check["ok"] is False:
+        failed = [c["check"] for c in check["checks"] if c["ok"] is False]
+        raise ExportRefusedError(
+            "bundle failed verification — export refused; nothing written "
+            f"(failing checks: {', '.join(failed) or 'see evarness-verify verify'})"
+        )
+
+    for fmt in trace_formats:  # fail on unknown formats before writing anything
+        _load_plugin_exporters()
+        if fmt not in EXPORTERS:
+            raise ExportFormatError(
+                f"unknown trace format '{fmt}' — available: {', '.join(sorted(EXPORTERS))}"
+            )
+
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "scenarios").mkdir(exist_ok=True)
+    subject = bundle.get("subject") or {}
+    files: list[dict] = []
+
+    def emit(path: Path, text: str, kind: str, **extra) -> None:
+        path.write_text(text)
+        files.append(
+            {
+                "path": str(path.relative_to(out)),
+                "kind": kind,
+                "sha256": _sha256_file(path),
+                **extra,
+            }
+        )
+
+    emit(out / "verdicts.junit.xml", render_junit(bundle), "junit")
+    emit(out / "verdicts.sarif.json", render_sarif(bundle), "sarif")
+
+    scenario_rows: list[dict] = []
+    for sc in bundle.get("scenarios") or []:
+        fixture = str(sc.get("fixture", "scenario"))
+        events = sc.get("events")
+        scenario_rows.append(
+            {
+                "fixture": fixture,
+                "status": sc.get("status"),
+                "trace_digest": sc.get("trace_digest"),
+                "reproduced": sc.get("reproduced"),
+                "events_exported": events is not None,
+            }
+        )
+        if events is None:
+            continue  # named in the manifest as not exported — the honest row
+        meta = {
+            "name": subject.get("graph_name"),
+            "graph_id": subject.get("graph_id"),
+            "status": sc.get("status"),
+            "reason": sc.get("reason"),
+            "seed": subject.get("seed"),
+            "provider": subject.get("provider"),
+            "fixture": fixture,
+            "trace_digest": sc.get("trace_digest"),
+        }
+        for fmt in trace_formats:
+            doc, _ = export_trace(fmt, events, meta)
+            ext = EXPORTERS[fmt].extension
+            path = out / "scenarios" / f"{_safe_name(fixture)}{ext}"
+            if any(f["path"] == str(path.relative_to(out)) for f in files):
+                # two formats sharing an extension: disambiguate by format name
+                path = out / "scenarios" / f"{_safe_name(fixture)}.{fmt}{ext}"
+            emit(
+                path,
+                doc,
+                f"trace:{fmt}",
+                fixture=fixture,
+                trace_digest=sc.get("trace_digest"),
+            )
+
+    bundle_json = json.dumps(bundle, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    manifest = {
+        "export_version": EXPORT_VERSION,
+        "exported_by": {"evarness": _engine_version()},
+        "bundle_sha256": hashlib.sha256(bundle_json.encode("ascii")).hexdigest(),
+        "verified": {"ok": check["ok"], "checks": len(check["checks"])},
+        "subject": subject,
+        "verdict": bundle.get("verdict"),
+        "not_proven": bundle.get("not_proven") or [],
+        "signed": bool(bundle.get("attestation")),
+        "scenarios": scenario_rows,
+        "files": files,
+    }
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    return manifest

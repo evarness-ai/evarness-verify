@@ -2,9 +2,9 @@
 
 import json
 
-from evarness.domains.agents import patterns
-from evarness.core.prove import graph_hash, prove, render_proof_html
-from evarness.core.graph import GraphModel
+from evarness_verify.core.graph import GraphModel
+from evarness_verify.core.prove import graph_hash, prove, render_proof_html
+from evarness_verify.domains.agents import patterns
 
 FLAGSHIP = "governed_email_assistant"
 GATED = "approval_gated_send"
@@ -89,7 +89,7 @@ def test_paused_only_bundle_is_pending_not_ok():
 
 
 def test_verdict_precedence_failure_beats_pending():
-    from evarness.core.prove import _verdict
+    from evarness_verify.core.prove import _verdict
 
     # a real failure in one scenario sinks the proof even if another paused
     v = _verdict(2, declared=True, invariants_pass=False, reproduced=None, paused=1)
@@ -107,7 +107,7 @@ def test_verdict_precedence_failure_beats_pending():
 
 
 def test_pending_bundle_verifies_consistent_but_forged_ok_is_caught():
-    from evarness.core.prove import verify_proof
+    from evarness_verify.core.prove import verify_proof
 
     graph, scenarios = _subject(GATED)
     proof = prove(graph, scenarios, invariant_defs=patterns.invariant_defs(GATED))
@@ -124,7 +124,7 @@ def test_pending_bundle_verifies_consistent_but_forged_ok_is_caught():
 
 
 def test_pending_gates_junit_sarif_and_html():
-    from evarness.core.prove import render_junit, render_sarif
+    from evarness_verify.core.prove import render_junit, render_sarif
 
     graph, scenarios = _subject(GATED)
     proof = prove(graph, scenarios, invariant_defs=patterns.invariant_defs(GATED))
@@ -136,7 +136,7 @@ def test_pending_gates_junit_sarif_and_html():
 
 
 def test_cli_pending_prove_exits_nonzero(capsys, tmp_path, monkeypatch):
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     monkeypatch.chdir(tmp_path)
     assert main(["prove", GATED, "-o", "pending.json"]) == 1
@@ -166,7 +166,7 @@ def test_html_report_renders_the_evidence():
 
 
 def test_cli_prove_writes_bundle_and_gates_exit(tmp_path, capsys, monkeypatch):
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     monkeypatch.chdir(tmp_path)
     assert main(["prove", FLAGSHIP, "-o", "p.json", "--html", "p.html"]) == 0

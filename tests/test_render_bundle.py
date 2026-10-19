@@ -14,11 +14,11 @@ import re
 
 import pytest
 
-from evarness.core.graph import GraphModel
-from evarness.core.prove import graph_hash, prove, verify_proof
-from evarness.domains.agents import patterns
-from evarness.domains.agents.nodes.base import presentation
-from evarness.io.render import (
+from evarness_verify.core.graph import GraphModel
+from evarness_verify.core.prove import graph_hash, prove, verify_proof
+from evarness_verify.domains.agents import patterns
+from evarness_verify.domains.agents.nodes.base import presentation
+from evarness_verify.io.render import (
     RENDER_VERSION,
     RenderMismatchError,
     render_proof_browser,
@@ -52,7 +52,9 @@ def pres_of(graph: GraphModel) -> dict:
 
 
 def island_of(doc: str) -> dict:
-    m = re.search(r'<script type="application/json" id="evarness-data">(.*?)</script>', doc, re.S)
+    m = re.search(
+        r'<script type="application/json" id="evarness-data">(.*?)</script>', doc, re.DOTALL
+    )
     assert m, "data island missing"
     return json.loads(m.group(1))
 
@@ -159,7 +161,7 @@ def test_no_external_origins_in_browser():
 
 
 def test_cli_renders_a_bundle_with_pattern_autoresolve(tmp_path, capsys):
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     bundle_path = tmp_path / "proof.json"
     bundle_path.write_text(json.dumps(make_bundle(FLAGSHIP)))
@@ -172,7 +174,7 @@ def test_cli_renders_a_bundle_with_pattern_autoresolve(tmp_path, capsys):
 
 
 def test_cli_renders_a_pattern_id(tmp_path):
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     out = tmp_path / "pattern.html"
     assert main(["render", FLAGSHIP, "-o", str(out)]) == 0

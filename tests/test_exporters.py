@@ -6,13 +6,13 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from evarness.domains.agents import patterns
-from evarness.core.executor import execute
-from evarness.io.exporters import EXPORTERS, export_formats, export_trace, register_exporter
-from evarness.core.prove import prove, render_junit, render_sarif
-from evarness.core.graph import GraphModel
-from evarness.domains.agents.sim import load_fixture
-from evarness.core.trace import canonical_trace, trace_digest
+from evarness_verify.core.executor import execute
+from evarness_verify.core.graph import GraphModel
+from evarness_verify.core.prove import prove, render_junit, render_sarif
+from evarness_verify.core.trace import canonical_trace, trace_digest
+from evarness_verify.domains.agents import patterns
+from evarness_verify.domains.agents.sim import load_fixture
+from evarness_verify.io.exporters import EXPORTERS, export_formats, export_trace, register_exporter
 
 FLAGSHIP = "governed_email_assistant"
 
@@ -81,7 +81,7 @@ def test_otlp_run_becomes_root_span_nodes_become_children():
     assert media == "application/json"
     spans = json.loads(doc)["resourceSpans"][0]["scopeSpans"][0]["spans"]
     root, children = spans[0], spans[1:]
-    assert root["name"].startswith("evarness.run:")
+    assert root["name"].startswith("evarness_verify.run:")
     assert len(root["traceId"]) == 32 and len(root["spanId"]) == 16
     assert {s["traceId"] for s in spans} == {root["traceId"]}
     assert all(s["parentSpanId"] == root["spanId"] for s in children)
@@ -89,8 +89,8 @@ def test_otlp_run_becomes_root_span_nodes_become_children():
     assert len(children) == len(node_starts)
     assert root["status"] == {"code": "STATUS_CODE_OK"}
     attrs = {a["key"]: a["value"] for a in root["attributes"]}
-    assert attrs["evarness.trace_digest"]["stringValue"].startswith("c1:sha256:")
-    assert attrs["evarness.deterministic"]["boolValue"] is True
+    assert attrs["evarness_verify.trace_digest"]["stringValue"].startswith("c1:sha256:")
+    assert attrs["evarness_verify.deterministic"]["boolValue"] is True
     assert attrs["gen_ai.provider.name"]["stringValue"] == "sim"
     assert int(attrs["gen_ai.usage.total_tokens"]["intValue"]) > 0
     # spans are honest about time: end >= start, and children nest inside root
@@ -131,7 +131,7 @@ def test_otlp_service_name_comes_from_exporters_yaml():
     graph, run = _run()
     doc, _ = export_trace("otlp", run.events, _meta(graph, run))
     res = json.loads(doc)["resourceSpans"][0]["resource"]["attributes"]
-    assert {"key": "service.name", "value": {"stringValue": "evarness"}} in res
+    assert {"key": "service.name", "value": {"stringValue": "evarness-verify"}} in res
 
 
 # ------------------------------------------------------------ JUnit and SARIF
@@ -200,7 +200,7 @@ def test_sarif_holding_proof_is_clean_and_nothing_asserted_warns():
 
 
 def test_cli_run_trace_out_writes_the_export(tmp_path, capsys):
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     graph_path = tmp_path / "g.json"
     graph_path.write_text(json.dumps(patterns.load_pattern(FLAGSHIP)))
@@ -222,11 +222,11 @@ def test_cli_run_trace_out_writes_the_export(tmp_path, capsys):
         == 0
     )
     spans = json.loads(out.read_text())["resourceSpans"][0]["scopeSpans"][0]["spans"]
-    assert spans[0]["name"].startswith("evarness.run:")
+    assert spans[0]["name"].startswith("evarness_verify.run:")
 
 
 def test_cli_prove_junit_and_sarif(tmp_path, capsys, monkeypatch):
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     monkeypatch.chdir(tmp_path)
     assert main(["prove", FLAGSHIP, "-o", "p.json", "--junit", "p.xml", "--sarif", "p.sarif"]) == 0

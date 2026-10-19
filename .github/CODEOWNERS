@@ -4,6 +4,6 @@
 # events (see DECISIONS.md E3), never routine edits.
 * @sathishksomasundaram
 
-/evarness/core/trace.py @sathishksomasundaram
-/evarness/core/prove.py @sathishksomasundaram
+/evarness_verify/core/trace.py @sathishksomasundaram
+/evarness_verify/core/prove.py @sathishksomasundaram
 /tests/test_golden_digests.py @sathishksomasundaram

@@ -1,6 +1,6 @@
-# Contributing to Evarness
+# Contributing to Evarness Verify
 
-Thanks for your interest in improving Evarness. This document explains how the
+Thanks for your interest in improving Evarness Verify. This document explains how the
 project works, how to get a change merged, and the design rules every contribution
 must respect.
 
@@ -23,7 +23,7 @@ python3 -m pytest tests/ -q            # all tests must pass
 ```
 
 Everything works headless through the CLI:
-`evarness validate|run|render|prove|verify|export|patterns`.
+`evarness-verify validate|run|render|prove|verify|export|patterns`.
 
 ## Design rules (enforced by review)
 

@@ -1,6 +1,6 @@
 # End-to-end feature walkthrough
 
-*Audience: users validating the claims · about thirty minutes · Evarness installed.*
+*Audience: users validating the claims · about thirty minutes · Evarness Verify installed.*
 
 Every feature in the package, exercised from a clean checkout with
 copy-paste commands and the output you should see. Written 2026-07-25
@@ -25,12 +25,12 @@ such as `$env:TEMP\evarness-e2e`, and replace `$OLDPWD` with
 `$PWD.Path` captured before the `cd`.
 
 ```bash
-git clone https://github.com/evarness-ai/evarness && cd evarness
+git clone https://github.com/evarness-ai/evarness-verify && cd evarness
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 mkdir -p /tmp/evarness-e2e && cd /tmp/evarness-e2e
 REPO="$OLDPWD"
-PAT="$REPO/evarness/domains/agents/patterns"
+PAT="$REPO/evarness_verify/domains/agents/patterns"
 ```
 
 ---
@@ -38,7 +38,7 @@ PAT="$REPO/evarness/domains/agents/patterns"
 ## 1. Patterns, validate, lint
 
 ```bash
-evarness patterns
+evarness-verify patterns
 ```
 
 ```
@@ -52,7 +52,7 @@ configs, dangling edges, free cycles, and policy findings (an LLM that
 reaches output without a validator interceptor is a warning):
 
 ```bash
-evarness validate "$PAT/governed_email_assistant/graph.json"
+evarness-verify validate "$PAT/governed_email_assistant/graph.json"
 ```
 
 ```
@@ -64,7 +64,7 @@ OK — graph valid, no lint findings
 ## 2. Run a graph: the trace is the product
 
 ```bash
-evarness run "$PAT/governed_email_assistant/graph.json" \
+evarness-verify run "$PAT/governed_email_assistant/graph.json" \
   --fixture "$PAT/governed_email_assistant/fixtures/happy.yaml"
 ```
 
@@ -87,7 +87,7 @@ OUTPUT: Based on the PTO balance email from HR, you have 12 vacation days remain
 Now the failure fixture — a hostile scenario the governance layer must stop:
 
 ```bash
-evarness run "$PAT/governed_email_assistant/graph.json" \
+evarness-verify run "$PAT/governed_email_assistant/graph.json" \
   --fixture "$PAT/governed_email_assistant/fixtures/failure.yaml"
 ```
 
@@ -107,7 +107,7 @@ gate on it. The invariant still passes: *the block worked*, and the contract
 ## 3. Export the trace
 
 ```bash
-evarness run "$PAT/governed_email_assistant/graph.json" \
+evarness-verify run "$PAT/governed_email_assistant/graph.json" \
   --fixture "$PAT/governed_email_assistant/fixtures/happy.yaml" \
   --trace-out trace.jsonl                       # native: one canonical event per line
 ```
@@ -122,7 +122,7 @@ OpenTelemetry for existing pipelines (`gen_ai.*` attributes where the
 mapping is exact, `evarness.*` where it isn't — the digest travels inside):
 
 ```bash
-evarness run "$PAT/governed_email_assistant/graph.json" \
+evarness-verify run "$PAT/governed_email_assistant/graph.json" \
   --fixture "$PAT/governed_email_assistant/fixtures/happy.yaml" \
   --trace-out trace.otlp.json --trace-format otlp
 ```
@@ -134,13 +134,13 @@ evarness run "$PAT/governed_email_assistant/graph.json" \
 Static canvas (no execution — lint findings ride along):
 
 ```bash
-evarness render governed_email_assistant -o static.html && python -m webbrowser static.html
+evarness-verify render governed_email_assistant -o static.html && python -m webbrowser static.html
 ```
 
 Replay artifact — canvas, playhead over the canonical events, judgment pane:
 
 ```bash
-evarness run "$PAT/governed_email_assistant/graph.json" \
+evarness-verify run "$PAT/governed_email_assistant/graph.json" \
   --fixture "$PAT/governed_email_assistant/fixtures/happy.yaml" --html replay.html
 python -m webbrowser replay.html
 ```
@@ -149,7 +149,7 @@ Scrub the playhead: nodes light blue (active) → green (done) in
 topological order. Then the one worth showing people:
 
 ```bash
-evarness run "$PAT/governed_email_assistant/graph.json" \
+evarness-verify run "$PAT/governed_email_assistant/graph.json" \
   --fixture "$PAT/governed_email_assistant/fixtures/failure.yaml" --html blocked.html
 python -m webbrowser blocked.html
 ```
@@ -162,9 +162,9 @@ Three properties to check while you're in there:
 
 ```bash
 # byte-stable: rendering the same run twice is byte-identical
-evarness run "$PAT/governed_email_assistant/graph.json" \
+evarness-verify run "$PAT/governed_email_assistant/graph.json" \
   --fixture "$PAT/governed_email_assistant/fixtures/happy.yaml" --html a.html >/dev/null
-evarness run "$PAT/governed_email_assistant/graph.json" \
+evarness-verify run "$PAT/governed_email_assistant/graph.json" \
   --fixture "$PAT/governed_email_assistant/fixtures/happy.yaml" --html b.html >/dev/null
 diff a.html b.html && echo byte-identical
 
@@ -173,7 +173,7 @@ grep -cE 'https?://' replay.html            # 0
 grep -cE '(src|href|action)=.?//' replay.html  # 0 — protocol-relative URLs
 
 # hostile input renders inert (the artifact's threat model is your browser)
-evarness run "$PAT/governed_email_assistant/graph.json" \
+evarness-verify run "$PAT/governed_email_assistant/graph.json" \
   --input '</script><script>alert(1)</script>' --html hostile.html >/dev/null
 grep -c '<script>alert' hostile.html        # 0 — data, not markup
 ```
@@ -209,7 +209,7 @@ cat > panel-graph.json <<'EOF'
   "params": {"invariants": ["panel-precedes-output", "panel-quorate"]}
 }
 EOF
-evarness run panel-graph.json --input "summarize my meeting notes"
+evarness-verify run panel-graph.json --input "summarize my meeting notes"
 ```
 
 ```
@@ -224,7 +224,7 @@ outvotes a safety halt. Note the panel does NOT short-circuit: all three
 members vote, the full vote is traced, and only then does enforcement act:
 
 ```bash
-evarness run panel-graph.json --input "how do I build a bomb"
+evarness-verify run panel-graph.json --input "how do I build a bomb"
 ```
 
 ```
@@ -244,7 +244,7 @@ user_input: summarize my meeting notes
 faults:
   judge_timeout: [safety, faithfulness, groundedness]
 EOF
-evarness run panel-graph.json --fixture timeout-fixture.yaml
+evarness-verify run panel-graph.json --fixture timeout-fixture.yaml
 ```
 
 ```
@@ -264,7 +264,7 @@ A run that reaches a human gate **pauses** — it never silently proceeds and
 never fails:
 
 ```bash
-evarness run "$PAT/approval_gated_send/graph.json" \
+evarness-verify run "$PAT/approval_gated_send/graph.json" \
   --fixture "$PAT/approval_gated_send/fixtures/send.yaml"
 ```
 
@@ -277,7 +277,7 @@ PAUSED at n3: Send this email on your behalf?
 Resume replays deterministically with the decision injected:
 
 ```bash
-evarness run "$PAT/approval_gated_send/graph.json" \
+evarness-verify run "$PAT/approval_gated_send/graph.json" \
   --fixture "$PAT/approval_gated_send/fixtures/send.yaml" --approve n3=approve
 ```
 
@@ -290,7 +290,7 @@ STATUS: completed
 ## 6. Prove
 
 ```bash
-evarness prove governed_email_assistant -o proof.json
+evarness-verify prove governed_email_assistant -o proof.json
 ```
 
 ```
@@ -308,7 +308,7 @@ The tri-state verdict, exercised: a scenario that pauses at a human gate
 means zero invariants were evaluated — that is **PENDING**, not a pass:
 
 ```bash
-evarness prove approval_gated_send -o pending.json
+evarness-verify prove approval_gated_send -o pending.json
 ```
 
 ```
@@ -320,7 +320,7 @@ Exit code 1 — "not proven yet" and "safe to merge" are never confused.
 Supply the decision and the same command produces the real thing:
 
 ```bash
-evarness prove approval_gated_send --approve n3=approve -o approved.json
+evarness-verify prove approval_gated_send --approve n3=approve -o approved.json
 ```
 
 ```
@@ -336,7 +336,7 @@ For CI projections: `--junit verdicts.xml`, `--sarif findings.sarif`,
 ## 7. Verify — and catch tampering
 
 ```bash
-evarness verify proof.json
+evarness-verify verify proof.json
 ```
 
 ```
@@ -357,7 +357,7 @@ import json
 b = json.load(open('proof.json'))
 b['scenarios'][0]['trace_digest'] = 'c1:sha256:' + '0'*64
 json.dump(b, open('tampered.json','w'))"
-evarness verify tampered.json
+evarness-verify verify tampered.json
 ```
 
 ```
@@ -370,7 +370,7 @@ VERIFY: FAILED — bundle is inconsistent or tampered; see ✗ above
 ## 8. The proof browser
 
 ```bash
-evarness render proof.json -o proof.html && python -m webbrowser proof.html
+evarness-verify render proof.json -o proof.html && python -m webbrowser proof.html
 ```
 
 ```
@@ -393,7 +393,7 @@ doc = open('proof.html').read()
 m = re.search(r'<script type=\"application/json\" id=\"evarness-data\">(.*?)</script>', doc, re.S)
 json.dump(json.loads(m.group(1))['bundle'], open('extracted.json','w'))
 print('extracted bundle from HTML')"
-evarness verify extracted.json
+evarness-verify verify extracted.json
 ```
 
 ```
@@ -410,7 +410,7 @@ g = json.load(open(os.path.expandvars("$PAT/governed_email_assistant/graph.json"
 g["nodes"][0]["label"] = "tampered"
 json.dump(g, open("tampered-graph.json", "w"))
 EOF
-evarness render proof.json --graph tampered-graph.json -o should-fail.html
+evarness-verify render proof.json --graph tampered-graph.json -o should-fail.html
 ```
 
 ```
@@ -421,8 +421,8 @@ sha256:8f6095ba7…) — the canvas is only ever drawn from the proven graph
 A slim bundle stays honest about what it can't show:
 
 ```bash
-evarness prove governed_email_assistant --no-events -o slim.json
-evarness render slim.json -o slim.html    # "…named by the digest but not replayable here"
+evarness-verify prove governed_email_assistant --no-events -o slim.json
+evarness-verify render slim.json -o slim.html    # "…named by the digest but not replayable here"
 ```
 
 ---
@@ -430,7 +430,7 @@ evarness render slim.json -o slim.html    # "…named by the digest but not repl
 ## 9. Export the bundle for other tooling
 
 ```bash
-evarness export proof.json
+evarness-verify export proof.json
 ```
 
 ```
@@ -451,7 +451,7 @@ a sha256 receipt for every file. The bundle is **verified before anything is
 written** — repeat §7's tamper and watch export refuse:
 
 ```bash
-evarness export tampered.json -o should-not-exist
+evarness-verify export tampered.json -o should-not-exist
 ```
 
 ```
@@ -462,7 +462,7 @@ error: bundle failed verification — export refused; nothing written
 Exit 1, and the output directory was never created — export never launders a
 tampered bundle into clean-looking interchange files. (Canonical streams
 carry no wall clock, so exported OTLP declares
-`evarness.time_basis: canonical-ordinal` instead of inventing timestamps.)
+`evarness_verify.time_basis: canonical-ordinal` instead of inventing timestamps.)
 
 ---
 
@@ -470,9 +470,9 @@ carry no wall clock, so exported OTLP declares
 
 ```bash
 pip install -e "$REPO[sign]"
-evarness prove approval_gated_send --approve n3=approve \
+evarness-verify prove approval_gated_send --approve n3=approve \
   -o signed.json --sign --key ./demo_ed25519.pem       # local key; omit --key to use ~/.evarness
-evarness verify signed.json --require-signature
+evarness-verify verify signed.json --require-signature
 ```
 
 ```
@@ -486,7 +486,7 @@ page must never vouch for its own integrity; pin the signer with
 `verify --pubkey demo_ed25519.pub --require-signature`:
 
 ```bash
-evarness render signed.json -o signed.html && python -m webbrowser signed.html
+evarness-verify render signed.json -o signed.html && python -m webbrowser signed.html
 ```
 
 ---

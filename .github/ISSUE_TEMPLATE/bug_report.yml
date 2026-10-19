@@ -38,6 +38,6 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: "evarness version, Python version, OS (e.g. 0.1.0 / 3.12 / macOS 15)."
+      description: "evarness-verify version, Python version, OS (e.g. 0.1.0 / 3.12 / macOS 15)."
     validations:
       required: true

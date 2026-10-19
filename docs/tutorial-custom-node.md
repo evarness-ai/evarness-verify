@@ -28,11 +28,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "evarness-shout"
 version = "0.1.0"
-description = "Tutorial plugin: one custom Evarness node"
+description = "Tutorial plugin: one custom Evarness Verify node"
 requires-python = ">=3.10"
 dependencies = ["evarness"]
 
-[project.entry-points."evarness.plugins"]
+[project.entry-points."evarness_verify.plugins"]
 shout = "evarness_shout:setup"
 ```
 
@@ -45,7 +45,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from evarness.core.registry import NODE_TYPES
+from evarness_verify.core.registry import NODE_TYPES
 
 
 class ShoutNode:
@@ -75,13 +75,13 @@ digest-covered, and available to invariant contracts (the next tutorial
 proves one over it). A node that does something the trace can't see is a
 node the product can't reason about.
 
-Note also what the plugin imports: `evarness.core` only. A plugin never
+Note also what the plugin imports: `evarness_verify.core` only. A plugin never
 needs a domain's internals.
 
 ## Install and check
 
 ```bash
-pip install evarness -e ./evarness-shout
+pip install evarness-verify -e ./evarness-shout
 ```
 
 The CLI loads installed plugins before parsing any graph, so your node is
@@ -121,10 +121,10 @@ default_response: {text: "unused - no llm in this graph"}
 Run it:
 
 ```bash
-evarness validate graph.json
+evarness-verify validate graph.json
 # OK — graph valid, no lint findings
 
-evarness run graph.json --fixture fixture.yaml
+evarness-verify run graph.json --fixture fixture.yaml
 ```
 
 ```text
@@ -161,5 +161,5 @@ def test_shout_uppercases_and_emits():
     assert events == [("shout_applied", "n2", {"length": 7})]
 ```
 
-That's the five minutes. The next step is what makes it Evarness rather
+That's the five minutes. The next step is what makes it Evarness Verify rather
 than a workflow engine: [prove something about it](tutorial-domain-plugin.md).

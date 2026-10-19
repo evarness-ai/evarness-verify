@@ -15,11 +15,11 @@ import json
 
 import pytest
 
-from evarness.core.graph import GraphModel
-from evarness.core.prove import prove
-from evarness.core.trace import trace_digest
-from evarness.domains.agents import patterns
-from evarness.io.exporters import ExportFormatError, ExportRefusedError, export_bundle
+from evarness_verify.core.graph import GraphModel
+from evarness_verify.core.prove import prove
+from evarness_verify.core.trace import trace_digest
+from evarness_verify.domains.agents import patterns
+from evarness_verify.io.exporters import ExportFormatError, ExportRefusedError, export_bundle
 
 FLAGSHIP = "governed_email_assistant"
 
@@ -101,7 +101,7 @@ def test_unknown_format_is_loud_before_writing(tmp_path):
 
 
 def test_cli_export_round_trip(tmp_path, capsys):
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     bundle_path = tmp_path / "proof.json"
     bundle_path.write_text(json.dumps(make_bundle()))
@@ -114,7 +114,7 @@ def test_cli_export_round_trip(tmp_path, capsys):
 
 
 def test_cli_export_refuses_tampered(tmp_path, capsys):
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     bundle = make_bundle()
     bundle["scenarios"][0]["trace_digest"] = "c1:sha256:" + "0" * 64

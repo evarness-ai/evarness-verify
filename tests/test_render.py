@@ -15,13 +15,13 @@ from pathlib import Path
 
 import pytest
 
-from evarness.core.executor import execute
-from evarness.core.graph import GraphModel
-from evarness.core.trace import canonical_trace, trace_digest
-from evarness.domains.agents import patterns
-from evarness.domains.agents.nodes.base import presentation
-from evarness.domains.agents.sim import load_fixture
-from evarness.io.render import (
+from evarness_verify.core.executor import execute
+from evarness_verify.core.graph import GraphModel
+from evarness_verify.core.trace import canonical_trace, trace_digest
+from evarness_verify.domains.agents import patterns
+from evarness_verify.domains.agents.nodes.base import presentation
+from evarness_verify.domains.agents.sim import load_fixture
+from evarness_verify.io.render import (
     RENDER_VERSION,
     RenderFormatError,
     RenderSubject,
@@ -52,7 +52,9 @@ def subject_for(pattern_id: str, fixture: str, approvals=None) -> RenderSubject:
 
 
 def island_of(doc: str) -> dict:
-    m = re.search(r'<script type="application/json" id="evarness-data">(.*?)</script>', doc, re.S)
+    m = re.search(
+        r'<script type="application/json" id="evarness-data">(.*?)</script>', doc, re.DOTALL
+    )
     assert m, "data island missing"
     return json.loads(m.group(1))
 
@@ -69,7 +71,7 @@ def test_no_external_origins_ever():
 
 
 def test_renderer_source_never_uses_innerhtml():
-    src = (Path(__file__).parent.parent / "evarness" / "io" / "render.py").read_text()
+    src = (Path(__file__).parent.parent / "evarness_verify" / "io" / "render.py").read_text()
     assert "innerHTML" not in src
 
 
@@ -217,7 +219,7 @@ def test_unknown_renderer_is_loud():
 
 
 def test_cli_run_html_and_render(tmp_path):
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     gpath = tmp_path / "bare.json"
     gpath.write_text(

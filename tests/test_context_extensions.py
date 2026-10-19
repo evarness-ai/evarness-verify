@@ -6,13 +6,13 @@ classification/egress/tier suite (test_core.py) — every one of those tests now
 flows through RunContext.ext. These tests pin the seam's own contract.
 """
 
-from evarness.core.executor import RunContext
-from evarness.core.registry import (
+from evarness_verify.core.executor import RunContext
+from evarness_verify.core.registry import (
     CONTEXT_EXTENSIONS,
     build_context_extensions,
     register_context_extension,
 )
-from evarness.domains.agents.state import AgentsRunState
+from evarness_verify.domains.agents.state import AgentsRunState
 
 
 def test_kernel_context_carries_no_agent_fields():

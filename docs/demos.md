@@ -44,7 +44,7 @@ page embeds the entire bundle in its data island — extract the `bundle` key
 (or just download the raw bundle above) and run:
 
 ```bash
-evarness verify proof.json
+evarness-verify verify proof.json
 ```
 
 The proof carried by this documentation page verifies offline, on your

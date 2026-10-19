@@ -4,11 +4,11 @@ verification, Ed25519 attestation, tamper detection."""
 import copy
 import json
 
-from evarness.domains.agents import patterns
-from evarness.core.attest import sign_proof, verify_attestation
-from evarness.core.prove import prove, verify_proof
-from evarness.core.graph import GraphModel
-from evarness.core.trace import chain_digest
+from evarness_verify.core.attest import sign_proof, verify_attestation
+from evarness_verify.core.graph import GraphModel
+from evarness_verify.core.prove import prove, verify_proof
+from evarness_verify.core.trace import chain_digest
+from evarness_verify.domains.agents import patterns
 
 FLAGSHIP = "governed_email_assistant"
 
@@ -138,7 +138,7 @@ def test_signature_breaks_on_any_bundle_edit(tmp_path):
 
 
 def test_cli_prove_sign_then_verify(tmp_path, capsys, monkeypatch):
-    from evarness.cli import main
+    from evarness_verify.cli import main
 
     monkeypatch.chdir(tmp_path)
     key = tmp_path / "sign.pem"
@@ -170,7 +170,7 @@ def test_tamper_and_resign_with_different_key_is_caught_only_by_pinning(tmp_path
     # embedded key legitimately signed these bytes. Only pinning the
     # original signer's public key catches the impostor. This is the
     # "trust reduces to the signer" limit, exercised end to end.
-    from evarness.core.attest import public_key_b64, sign_proof, _load_or_create_key
+    from evarness_verify.core.attest import _load_or_create_key, public_key_b64, sign_proof
 
     signed = sign_proof(_proof(), key_path=tmp_path / "signer-a.pem")
     pin = signed["attestation"]["public_key"]

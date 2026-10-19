@@ -68,7 +68,7 @@ has never seen your code run.
 A node plus a contract is the small end of a domain. The registries in
 `evarness_verify.core.registry` are the whole list of what a domain can
 contribute — each one is how the packaged agents domain wires itself in,
-so `evarness/domains/agents/` is a complete worked example:
+so `evarness_verify/domains/agents/` is a complete worked example:
 
 | Seam | What your domain supplies |
 | --- | --- |

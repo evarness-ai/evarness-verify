@@ -57,10 +57,10 @@ graph + environment + seed
 
 | Layer | Where | Knows about |
 |---|---|---|
-| `evarness/core/` | kernel | graphs, events, digests, contracts, proofs — **no** agent concepts |
-| `evarness/domains/agents/` | first domain | LLMs, tools, approval gates, RAG — plugs into core via registries |
-| `evarness/io/` | exporters | JSONL/OTLP trace export; JUnit/SARIF/HTML render verdicts |
-| `evarness/cli/` | thin argparse | everything the CLI does is one library import away |
+| `evarness_verify/core/` | kernel | graphs, events, digests, contracts, proofs — **no** agent concepts |
+| `evarness_verify/domains/agents/` | first domain | LLMs, tools, approval gates, RAG — plugs into core via registries |
+| `evarness_verify/io/` | exporters | JSONL/OTLP trace export; JUnit/SARIF/HTML render verdicts |
+| `evarness_verify/cli/` | thin argparse | everything the CLI does is one library import away |
 
 Layering rule 1 is sacred: **core never imports from domains.** Where the
 kernel needs domain judgment ("is this graph deterministic?") it exposes a hook
@@ -190,7 +190,7 @@ evarness-verify prove approval_gated_send --approve n3=approve -o proof.json
 ```bash
 cd evarness
 source .venv/bin/activate
-P=evarness/domains/agents/patterns/approval_gated_send
+P=evarness_verify/domains/agents/patterns/approval_gated_send
 
 evarness-verify patterns                                                  # what's runnable
 evarness-verify run $P/graph.json --fixture $P/fixtures/send.yaml         # → paused

@@ -1,4 +1,4 @@
-"""evarness — prove an AI agent harness before it touches real data.
+"""Evarness Verify — prove an AI agent harness before it touches real data.
 
 ``import evarness_verify`` gives you the batteries-included surface: the kernel plus
 the agents domain, with plugins discovered — loaded lazily, on first

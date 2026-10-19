@@ -52,8 +52,8 @@ from evarness_verify.domains.agents.nodes.observability import (  # noqa: F401
     TraceProbeNode,
 )
 from evarness_verify.domains.agents.nodes.rag import (
-    ContextAssemblerNode,
-    RetrieverNode,
+    ContextAssemblerNode,  # noqa: F401
+    RetrieverNode,  # noqa: F401
 )
 from evarness_verify.domains.agents.nodes.tools import ToolNode  # noqa: F401
 from evarness_verify.domains.agents.prompts import (  # noqa: F401  (compat re-export)

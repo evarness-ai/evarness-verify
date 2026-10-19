@@ -30,7 +30,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 mkdir -p /tmp/evarness-e2e && cd /tmp/evarness-e2e
 REPO="$OLDPWD"
-PAT="$REPO/evarness/domains/agents/patterns"
+PAT="$REPO/evarness_verify/domains/agents/patterns"
 ```
 
 ---

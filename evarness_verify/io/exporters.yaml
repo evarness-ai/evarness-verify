@@ -4,7 +4,7 @@
 
 otlp:
   # OpenTelemetry resource identity stamped on every export.
-  service_name: evarness
+  service_name: evarness-verify
   # Extra resource attributes, e.g. deployment.environment: ci
   resource_attributes: {}
 

@@ -20,7 +20,7 @@ from pathlib import Path
 
 DOCS = Path(__file__).resolve().parent.parent
 REPO = DOCS.parent
-PATTERN_DIR = REPO / "evarness" / "domains" / "agents" / "patterns" / "governed_email_assistant"
+PATTERN_DIR = REPO / "evarness_verify" / "domains" / "agents" / "patterns" / "governed_email_assistant"
 
 # the reference digests this site's prose cites — the same values pinned by
 # tests/test_golden_digests.py; a mismatch here is a c1 contract event, never
